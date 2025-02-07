@@ -129,6 +129,7 @@ pub fn simulate_game_multi(
                         gap.first_index,
                         gap.last_index,
                         number,
+                        &boards[i],
                     )
                 };
                 boards[i][chosen_slot] = Some(number);

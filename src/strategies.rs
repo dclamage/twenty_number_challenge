@@ -12,6 +12,7 @@ impl Strategy for OptimalWinStrategy {
         first_slot: usize,
         last_slot: usize,
         number: i32,
+        _current_board: &[Option<i32>],
     ) -> usize {
         let num_slots = last_slot - first_slot + 1;
 
@@ -52,6 +53,7 @@ impl Strategy for CautiousOptimalStrategy {
         first_slot: usize,
         last_slot: usize,
         number: i32,
+        _current_board: &[Option<i32>],
     ) -> usize {
         // Determine the number of available slots.
         let num_slots = last_slot - first_slot + 1;
@@ -97,6 +99,7 @@ impl<const SIGMA_FIXED: usize> Strategy for GaussianStrategy<SIGMA_FIXED> {
         first_slot: usize,
         last_slot: usize,
         number: i32,
+        _current_board: &[Option<i32>],
     ) -> usize {
         let num_slots = last_slot - first_slot + 1;
         // We assume there are at least 3 slots available.
@@ -117,5 +120,65 @@ impl<const SIGMA_FIXED: usize> Strategy for GaussianStrategy<SIGMA_FIXED> {
         // Map the new_fraction to a slot index.
         let slot_index = (new_fraction * (num_slots - 1) as f64).round() as usize;
         first_slot + slot_index.min(num_slots - 1)
+    }
+}
+
+pub struct BinomialStrategy;
+
+impl BinomialStrategy {
+    /// Computes the binomial coefficient "n choose k" as a floating-point number.
+    fn binom(n: usize, k: usize) -> f64 {
+        if k > n {
+            return 0.0;
+        }
+        let mut result = 1.0;
+        for i in 0..k {
+            result *= (n - i) as f64 / (i + 1) as f64;
+        }
+        result
+    }
+}
+
+impl Strategy for BinomialStrategy {
+    fn choose_slot(
+        &self,
+        lower: i32,
+        upper: i32,
+        first_slot: usize,
+        last_slot: usize,
+        number: i32,
+        _current_board: &[Option<i32>],
+    ) -> usize {
+        // Determine the number of available slots in the current gap.
+        let num_slots = last_slot - first_slot + 1;
+        // This strategy requires at least 3 slots so that there's a meaningful decision.
+        assert!(
+            num_slots >= 3,
+            "BinomialStrategy requires at least 3 slots"
+        );
+
+        // Normalize the drawn number to [0,1]
+        let x = (number - lower) as f64 / (upper - lower) as f64;
+        // The number of remaining positions in the gap after placing the current number.
+        let remaining = num_slots - 1;
+
+        let mut best_k = 0;
+        let mut best_prob = -1.0;
+
+        // Evaluate each possible slot (from 0 to num_slots-1) in the gap.
+        // k = 0 corresponds to placing in the leftmost slot,
+        // and k = num_slots-1 to placing in the rightmost slot.
+        for k in 0..num_slots {
+            let prob = Self::binom(remaining, k)
+                * x.powi(k as i32)
+                * (1.0 - x).powi((remaining - k) as i32);
+            if prob > best_prob {
+                best_prob = prob;
+                best_k = k;
+            }
+        }
+
+        // Return the actual slot index in the overall sequence.
+        first_slot + best_k
     }
 }

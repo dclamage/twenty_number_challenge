@@ -11,6 +11,7 @@ fn main() {
     let num_simulations = 10_000_000;
     let mut strategies: Vec<(String, Box<dyn Strategy>)> = vec![
         ("OptimalWin".to_string(), Box::new(OptimalWinStrategy)),
+        ("Binomial".to_string(), Box::new(BinomialStrategy)),
         // ("Gaussian (σ=0.02)", Box::new(GaussianStrategy::<20>)),
         // ("Gaussian (σ=0.05)", Box::new(GaussianStrategy::<50>)),
         // ("Gaussian (σ=0.10)", Box::new(GaussianStrategy::<100>)),
@@ -26,8 +27,8 @@ fn main() {
         // ("Gaussian (σ=2.00)", Box::new(GaussianStrategy::<2000>)),
     ];
 
-    // Add CautiousOptimal for 80 to 100
-    for i in 80..=100 {
+    // Add CautiousOptimal for 80 to 100 with a step of 5
+    for i in (80..=100).step_by(5) {
         let strategy_name = format!("CautiousOptimal_{}", i);
         strategies.push((
             strategy_name.clone(),

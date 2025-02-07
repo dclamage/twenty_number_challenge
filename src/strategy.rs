@@ -15,5 +15,6 @@ pub trait Strategy {
         first_slot: usize,
 		last_slot: usize,
         number: i32,
+        current_board: &[Option<i32>],
     ) -> usize;
 }
