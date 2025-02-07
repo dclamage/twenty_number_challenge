@@ -1,0 +1,8 @@
+[package]
+name = "twenty_number_challenge"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libm = "0.2.11"
+rand = "0.9.0"
