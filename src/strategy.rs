@@ -7,7 +7,7 @@
 ///   - `number`: the drawn number to place.
 ///
 /// The function returns one of the indices in `available_slots`.
-pub trait Strategy {
+pub trait Strategy: Send + Sync {
     fn choose_slot(
         &self,
         lower: i32,

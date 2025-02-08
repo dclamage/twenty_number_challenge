@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use crate::strategy::Strategy;
 use rand::{rng, Rng};
+use rayon::prelude::*;
 
 pub const LOWER_BOUND: i32 = -1; // Lower boundary (no number is less than 0).
 pub const UPPER_BOUND: i32 = 999 + 1; // Upper boundary (all numbers are < UPPER_BOUND).
@@ -24,15 +27,21 @@ pub struct GameResult {
 /// Finds the gap (if any) where `number` can be legally placed given the current board.
 /// Returns a `Gap` if one is found or `None` if no valid gap exists.
 pub fn find_valid_gap(board: &[Option<i32>], number: i32) -> Option<Gap> {
+    let mut have_start = false;
+    let mut have_end = false;
     let mut start = 0;
     let mut end = NUM_SLOTS;
     // Find the last index that is not None and is less than number
     for (i, &val) in board.iter().enumerate() {
         if let Some(val) = val {
             match val.cmp(&number) {
-                std::cmp::Ordering::Less => start = i,
+                std::cmp::Ordering::Less => {
+                    start = i;
+                    have_start = true;
+                }
                 std::cmp::Ordering::Greater => {
                     end = i;
+                    have_end = true;
                     break;
                 }
                 _ => {}
@@ -40,11 +49,8 @@ pub fn find_valid_gap(board: &[Option<i32>], number: i32) -> Option<Gap> {
         }
     }
 
-    if end - start <= 1 {
-        return None;
-    }
-
-    if start == 0 && end == NUM_SLOTS {
+    // No start and no end means the board is empty.
+    if !have_start && !have_end {
         return Some(Gap {
             lower: LOWER_BOUND,
             upper: UPPER_BOUND,
@@ -53,7 +59,12 @@ pub fn find_valid_gap(board: &[Option<i32>], number: i32) -> Option<Gap> {
         });
     }
 
-    if start == 0 {
+    // No start means the number is less than the first number on the board.
+    if !have_start {
+        if end == 0 {
+            return None;
+        }
+
         return Some(Gap {
             lower: LOWER_BOUND,
             upper: board[end].unwrap(),
@@ -62,13 +73,22 @@ pub fn find_valid_gap(board: &[Option<i32>], number: i32) -> Option<Gap> {
         });
     }
 
-    if end == NUM_SLOTS {
+    // No end means the number is greater than the last number on the board.
+    if !have_end {
+        if start == NUM_SLOTS - 1 {
+            return None;
+        }
+
         return Some(Gap {
             lower: board[start].unwrap(),
             upper: UPPER_BOUND,
             first_index: start + 1,
             last_index: NUM_SLOTS - 1,
         });
+    }
+
+    if end - start <= 1 {
+        return None;
     }
 
     Some(Gap {
@@ -90,7 +110,7 @@ pub fn find_valid_gap(board: &[Option<i32>], number: i32) -> Option<Gap> {
 ///
 /// A vector of tuples, each containing the strategy name and its corresponding `GameResult`.
 pub fn simulate_game_multi(
-    strategies: &[(String, Box<dyn Strategy>)],
+    strategies: &[(String, Arc<dyn Strategy>)],
 ) -> Vec<(String, GameResult)> {
     let mut rng = rng();
 
@@ -191,26 +211,39 @@ pub fn simulate_game_multi(
 ///
 /// A vector of tuples, each containing the strategy name and its corresponding placement histogram.
 pub fn run_simulations_multi(
-    strategies: &[(String, Box<dyn Strategy>)],
+    strategies: &[(String, Arc<dyn Strategy>)],
     num_simulations: usize,
 ) -> Vec<(String, [usize; NUM_SLOTS + 1])> {
-    // Initialize histograms for each strategy.
-    let mut histograms: Vec<[usize; NUM_SLOTS + 1]> = vec![[0; NUM_SLOTS + 1]; strategies.len()];
+    // Clone the Arc pointers (cheap, reference count increases).
+    let strategies: Vec<(String, Arc<dyn Strategy>)> = strategies.to_vec();
 
-    for _ in 0..num_simulations {
-        // Run the simulation for all strategies using the same shuffled list of numbers.
-        let results = simulate_game_multi(strategies);
+    let num_strategies = strategies.len();
 
-        // Update the histogram for each strategy based on the result.
-        for (i, (_strategy_name, result)) in results.iter().enumerate() {
-            histograms[i][result.placed_count] += 1;
-        }
-    }
+    let histograms = (0..num_simulations)
+        .into_par_iter()
+        .map(|_| {
+            let results = simulate_game_multi(&strategies);
+            let mut local_hist = vec![[0; NUM_SLOTS + 1]; num_strategies];
+            for (i, (_name, result)) in results.iter().enumerate() {
+                local_hist[i][result.placed_count] += 1;
+            }
+            local_hist
+        })
+        .reduce(
+            || vec![[0; NUM_SLOTS + 1]; num_strategies],
+            |mut acc, local_hist| {
+                for (i, hist) in local_hist.into_iter().enumerate() {
+                    for (slot, count) in hist.into_iter().enumerate() {
+                        acc[i][slot] += count;
+                    }
+                }
+                acc
+            },
+        );
 
-    // Combine the strategy names with their corresponding histograms for the final result.
     strategies
-        .iter()
+        .into_iter()
         .enumerate()
-        .map(|(i, (strategy_name, _))| (strategy_name.clone(), histograms[i]))
+        .map(|(i, (name, _))| (name, histograms[i]))
         .collect()
 }

@@ -5,6 +5,67 @@ use std::io::BufRead;
 use crate::strategy::Strategy;
 use libm::erf;
 
+// Baseline validation strategies: FirstAvailable, LastAvailable, Middle
+pub struct FirstAvailableStrategy;
+
+impl Strategy for FirstAvailableStrategy {
+    fn want_full_control(&self) -> bool {
+        true
+    }
+
+    fn choose_slot(
+        &self,
+        _lower: i32,
+        _upper: i32,
+        first_slot: usize,
+        _last_slot: usize,
+        _number: i32,
+        _current_board: &[Option<i32>],
+    ) -> usize {
+        first_slot
+    }
+}
+
+pub struct LastAvailableStrategy;
+
+impl Strategy for LastAvailableStrategy {
+    fn want_full_control(&self) -> bool {
+        true
+    }
+
+    fn choose_slot(
+        &self,
+        _lower: i32,
+        _upper: i32,
+        _first_slot: usize,
+        last_slot: usize,
+        _number: i32,
+        _current_board: &[Option<i32>],
+    ) -> usize {
+        last_slot
+    }
+}
+
+pub struct MiddleStrategy;
+
+impl Strategy for MiddleStrategy {
+    fn want_full_control(&self) -> bool {
+        true
+    }
+
+    fn choose_slot(
+        &self,
+        _lower: i32,
+        _upper: i32,
+        first_slot: usize,
+        last_slot: usize,
+        _number: i32,
+        _current_board: &[Option<i32>],
+    ) -> usize {
+        first_slot + (last_slot - first_slot) / 2
+    }
+}
+
 // A strategy that picks the mathematically optimal slot for winning.
 pub struct OptimalWinStrategy;
 

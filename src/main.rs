@@ -3,30 +3,34 @@ mod strategies;
 mod strategy;
 
 use engine::run_simulations_multi;
-use std::io::Write;
+use std::{io::Write, sync::Arc};
 use strategies::*;
 use strategy::Strategy;
 
 fn main() {
-    let num_simulations = 10_000_000;
-    let mut strategies: Vec<(String, Box<dyn Strategy>)> = vec![
-        ("OptimalWin".to_string(), Box::new(OptimalWinStrategy)),
-        ("Binomial".to_string(), Box::new(BinomialStrategy)),
-        ("BinomialQuantized".to_string(), Box::new(BinomialQuantizedStrategy)),
-        ("LookupTable".to_string(), Box::new(LookupTableStrategy::new("strategy.txt"))),
-        // ("Gaussian (σ=0.02)", Box::new(GaussianStrategy::<20>)),
-        // ("Gaussian (σ=0.05)", Box::new(GaussianStrategy::<50>)),
-        // ("Gaussian (σ=0.10)", Box::new(GaussianStrategy::<100>)),
-        // ("Gaussian (σ=0.20)", Box::new(GaussianStrategy::<200>)),
-        // ("Gaussian (σ=0.30)", Box::new(GaussianStrategy::<300>)),
-        // ("Gaussian (σ=0.40)", Box::new(GaussianStrategy::<400>)),
-        // ("Gaussian (σ=0.50)", Box::new(GaussianStrategy::<500>)),
-        // ("Gaussian (σ=0.60)", Box::new(GaussianStrategy::<600>)),
-        // ("Gaussian (σ=0.70)", Box::new(GaussianStrategy::<700>)),
-        // ("Gaussian (σ=0.80)", Box::new(GaussianStrategy::<800>)),
-        // ("Gaussian (σ=0.90)", Box::new(GaussianStrategy::<900>)),
-        // ("Gaussian (σ=1.00)", Box::new(GaussianStrategy::<1000>)),
-        // ("Gaussian (σ=2.00)", Box::new(GaussianStrategy::<2000>)),
+    let num_simulations = 1_000_000_000;
+    let mut strategies: Vec<(String, Arc<dyn Strategy>)> = vec![
+        ("FirstAvailable".to_string(), Arc::new(FirstAvailableStrategy)),
+        ("LastAvailable".to_string(), Arc::new(LastAvailableStrategy)),
+        ("Middle".to_string(), Arc::new(MiddleStrategy)),
+        ("OptimalWin".to_string(), Arc::new(OptimalWinStrategy)),
+        ("Binomial".to_string(), Arc::new(BinomialStrategy)),
+        ("BinomialQuantized".to_string(), Arc::new(BinomialQuantizedStrategy)),
+        ("LookupTable".to_string(), Arc::new(LookupTableStrategy::new("strategy.txt"))),
+        ("LookupTableInt".to_string(), Arc::new(LookupTableStrategy::new("strategyint.txt"))),
+        // ("Gaussian (σ=0.02)", Arc::new(GaussianStrategy::<20>)),
+        // ("Gaussian (σ=0.05)", Arc::new(GaussianStrategy::<50>)),
+        // ("Gaussian (σ=0.10)", Arc::new(GaussianStrategy::<100>)),
+        // ("Gaussian (σ=0.20)", Arc::new(GaussianStrategy::<200>)),
+        // ("Gaussian (σ=0.30)", Arc::new(GaussianStrategy::<300>)),
+        // ("Gaussian (σ=0.40)", Arc::new(GaussianStrategy::<400>)),
+        // ("Gaussian (σ=0.50)", Arc::new(GaussianStrategy::<500>)),
+        // ("Gaussian (σ=0.60)", Arc::new(GaussianStrategy::<600>)),
+        // ("Gaussian (σ=0.70)", Arc::new(GaussianStrategy::<700>)),
+        // ("Gaussian (σ=0.80)", Arc::new(GaussianStrategy::<800>)),
+        // ("Gaussian (σ=0.90)", Arc::new(GaussianStrategy::<900>)),
+        // ("Gaussian (σ=1.00)", Arc::new(GaussianStrategy::<1000>)),
+        // ("Gaussian (σ=2.00)", Arc::new(GaussianStrategy::<2000>)),
     ];
 
     // Add CautiousOptimal for 80 to 100 with a step of 5
@@ -34,7 +38,7 @@ fn main() {
         let strategy_name = format!("CautiousOptimal_{}", i);
         strategies.push((
             strategy_name.clone(),
-            Box::new(CautiousOptimalStrategy::new(i)),
+            Arc::new(CautiousOptimalStrategy::new(i)),
         ));
     }
 
