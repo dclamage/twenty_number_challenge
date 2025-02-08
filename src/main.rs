@@ -12,6 +12,8 @@ fn main() {
     let mut strategies: Vec<(String, Box<dyn Strategy>)> = vec![
         ("OptimalWin".to_string(), Box::new(OptimalWinStrategy)),
         ("Binomial".to_string(), Box::new(BinomialStrategy)),
+        ("BinomialQuantized".to_string(), Box::new(BinomialQuantizedStrategy)),
+        ("LookupTable".to_string(), Box::new(LookupTableStrategy::new("strategy.txt"))),
         // ("Gaussian (σ=0.02)", Box::new(GaussianStrategy::<20>)),
         // ("Gaussian (σ=0.05)", Box::new(GaussianStrategy::<50>)),
         // ("Gaussian (σ=0.10)", Box::new(GaussianStrategy::<100>)),

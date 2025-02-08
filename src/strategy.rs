@@ -17,4 +17,8 @@ pub trait Strategy {
         number: i32,
         current_board: &[Option<i32>],
     ) -> usize;
+
+    fn want_full_control(&self) -> bool {
+        false
+    }
 }

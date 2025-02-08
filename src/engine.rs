@@ -1,9 +1,8 @@
 use crate::strategy::Strategy;
-use rand::rng;
-use rand::seq::SliceRandom;
+use rand::{rng, Rng};
 
 pub const LOWER_BOUND: i32 = -1; // Lower boundary (no number is less than 0).
-pub const UPPER_BOUND: i32 = 1000; // Upper boundary (all numbers are < 1000).
+pub const UPPER_BOUND: i32 = 999 + 1; // Upper boundary (all numbers are < UPPER_BOUND).
 pub const NUM_SLOTS: usize = 20; // The board has 20 slots.
 
 /// A `Gap` represents a contiguous group of empty slots along with
@@ -94,8 +93,15 @@ pub fn simulate_game_multi(
     strategies: &[(String, Box<dyn Strategy>)],
 ) -> Vec<(String, GameResult)> {
     let mut rng = rng();
-    let mut numbers: Vec<i32> = (0..1000).collect();
-    numbers.shuffle(&mut rng);
+
+    // Generate 20 random numbers been 0 and UPPER_BOUND without replacement
+    let mut numbers = Vec::new();
+    while numbers.len() < NUM_SLOTS {
+        let number = rng.random_range(0..UPPER_BOUND);
+        if !numbers.contains(&number) {
+            numbers.push(number);
+        }
+    }
 
     // Prepare separate boards and result trackers for each strategy.
     let mut boards: Vec<Vec<Option<i32>>> = vec![vec![None; NUM_SLOTS]; strategies.len()];
@@ -110,18 +116,27 @@ pub fn simulate_game_multi(
             }
 
             if let Some(gap) = find_valid_gap(&boards[i], number) {
-                let chosen_slot = if gap.first_index == gap.last_index || number == gap.lower + 1 {
+                let chosen_slot = if strategy.want_full_control() {
+                    strategy.choose_slot(
+                        gap.lower,
+                        gap.upper,
+                        gap.first_index,
+                        gap.last_index,
+                        number,
+                        &boards[i],
+                    )
+                } else if gap.first_index == gap.last_index || number == gap.lower + 1 {
                     gap.first_index
                 } else if number + 1 == gap.upper {
                     gap.last_index
-				} else if gap.first_index == gap.last_index - 1 {
-					let dist_lower = number - gap.lower;
-					let dist_upper = gap.upper - number;
-					if dist_lower < dist_upper {
-						gap.first_index
-					} else {
-						gap.last_index
-					}
+                } else if gap.first_index == gap.last_index - 1 {
+                    let dist_lower = number - gap.lower;
+                    let dist_upper = gap.upper - number;
+                    if dist_lower < dist_upper {
+                        gap.first_index
+                    } else {
+                        gap.last_index
+                    }
                 } else {
                     strategy.choose_slot(
                         gap.lower,
